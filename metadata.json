@@ -1,0 +1,6 @@
+{
+  "name": "Isabela Rice App",
+  "description": "Inventory Management System for Isabela Rice Processing Complex",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
