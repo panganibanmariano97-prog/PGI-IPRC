@@ -77,7 +77,48 @@ export default function App() {
       });
     };
 
+    const checkFarmerSeasons = () => {
+      if (!data || !data[TABS.PURCHASE]) return;
+      const seen = {};
+      data[TABS.PURCHASE].forEach(row => {
+        const farmer = row.supplier;
+        const dateStr = row.date;
+        if (!farmer || !dateStr) return;
+        const [y, m, d] = dateStr.split('-');
+        if (!y || !m) return;
+        
+        const year = parseInt(y, 10);
+        const month = parseInt(m, 10);
+        const season = month <= 6 ? '1st Cropping Season' : '2nd Cropping Season';
+        
+        const normalizedFarmer = String(farmer).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        if (!normalizedFarmer) return;
+        
+        const key = `${normalizedFarmer}-${year}-${season}`;
+        
+        if (seen[key]) {
+          seen[key].count++;
+        } else {
+          seen[key] = { 
+            count: 1, 
+            original: farmer, 
+            tab: TABS.PURCHASE, 
+            label: `Farmer in ${season} ${year}`,
+            season: season,
+            year: year
+          };
+        }
+      });
+      
+      Object.values(seen).forEach(item => {
+        if (item.count > 1) {
+          dups.push(item);
+        }
+      });
+    };
+
     checkDuplicates(TABS.PURCHASE, 'truckscaleControlNo', 'Truckscale No.');
+    checkFarmerSeasons();
     checkDuplicates(TABS.TRANSFER, 'truckscaleControlNo', 'Truckscale No.');
     checkDuplicates(TABS.PRODUCTION, 'batchNo', 'Batch No.');
     checkDuplicates(TABS.ISSUANCE, 'withdrawalSlipNo', 'Withdrawal Slip No.');
@@ -378,6 +419,38 @@ export default function App() {
       row[field] = value;
     }
 
+    if (tab === TABS.PURCHASE && (field === 'supplier' || field === 'date')) {
+      const rDate = row.date;
+      const rSupplier = row.supplier;
+      
+      if (rDate && rSupplier) {
+        const [y, m] = rDate.split('-');
+        if (y && m) {
+          const year = parseInt(y, 10);
+          const month = parseInt(m, 10);
+          const season = month <= 6 ? '1st Cropping Season' : '2nd Cropping Season';
+          const normalizedFarmer = String(rSupplier).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+          
+          if (normalizedFarmer) {
+            const isDuplicate = tabData.some(r => {
+              if (r.id === rowId) return false;
+              if (!r.date || !r.supplier) return false;
+              const [ry, rm] = r.date.split('-');
+              if (!ry || !rm) return false;
+              const rSeason = parseInt(rm, 10) <= 6 ? '1st Cropping Season' : '2nd Cropping Season';
+              if (parseInt(ry, 10) !== year || rSeason !== season) return false;
+              return String(r.supplier).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === normalizedFarmer;
+            });
+            
+            if (isDuplicate) {
+              setTxDuplicateError([{ tab, label: `Farmer in ${season} ${year}`, original: rSupplier, count: 2 }]);
+              return;
+            }
+          }
+        }
+      }
+    }
+
     if (tab === TABS.PURCHASE) {
       if (field === 'weight' || field === 'price') {
         const w = parseFloat(row.weight) || 0;
@@ -540,6 +613,38 @@ export default function App() {
               setTxDuplicateError([{ tab, label: checkLabel, original: val, count: 2 }]);
               return; // Do not save, do not close txModal
            }
+        }
+      }
+    }
+
+    if (tab === TABS.PURCHASE) {
+      const rDate = processedRow.date;
+      const rSupplier = processedRow.supplier;
+      
+      if (rDate && rSupplier) {
+        const [y, m] = rDate.split('-');
+        if (y && m) {
+          const year = parseInt(y, 10);
+          const month = parseInt(m, 10);
+          const season = month <= 6 ? '1st Cropping Season' : '2nd Cropping Season';
+          const normalizedFarmer = String(rSupplier).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+          
+          if (normalizedFarmer) {
+            const isDuplicate = data[tab]?.some(r => {
+              if (txModal.isEdit && r.id === processedRow.id) return false;
+              if (!r.date || !r.supplier) return false;
+              const [ry, rm] = r.date.split('-');
+              if (!ry || !rm) return false;
+              const rSeason = parseInt(rm, 10) <= 6 ? '1st Cropping Season' : '2nd Cropping Season';
+              if (parseInt(ry, 10) !== year || rSeason !== season) return false;
+              return String(r.supplier).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === normalizedFarmer;
+            });
+            
+            if (isDuplicate) {
+              setTxDuplicateError([{ tab, label: `Farmer in ${season} ${year}`, original: rSupplier, count: 2 }]);
+              return;
+            }
+          }
         }
       }
     }

@@ -1,113 +1,87 @@
 import re
 
 with open('src/App.tsx', 'r') as f:
-    code = f.read()
+    content = f.read()
 
-# Add a state for duplicate error
-state_pattern = "  const [showDuplicateModal, setShowDuplicateModal] = useState(false);"
-new_state = """  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
-  const [txDuplicateError, setTxDuplicateError] = useState(null);"""
-code = code.replace(state_pattern, new_state)
-
-# modify handleSaveTx
-save_pattern = """  const handleSaveTx = (formData) => {
-    const tab = txModal.tab;
-    const processedRow = computeDependentFields(tab, formData);
-    
-    const newData = { ...data };
-    if (!newData[tab]) newData[tab] = [];
-    
-    if (txModal.isEdit) {
-      const idx = newData[tab].findIndex(r => r.id === processedRow.id);
-      if (idx !== -1) {
-        newData[tab][idx] = processedRow;
-      }
-    } else {
-      newData[tab].push(processedRow);
-    }
-    
-    syncCloudState(newData);
-    setTxModal({ isOpen: false, row: null, tab: null, isEdit: false });
-  };"""
-
-new_save = """  const handleSaveTx = (formData) => {
-    const tab = txModal.tab;
-    const processedRow = computeDependentFields(tab, formData);
-    
-    const checkKey = {
-      [TABS.PURCHASE]: 'truckscaleControlNo',
-      [TABS.TRANSFER]: 'truckscaleControlNo',
-      [TABS.PRODUCTION]: 'batchNo',
-      [TABS.ISSUANCE]: 'withdrawalSlipNo',
-      [TABS.BYPRODUCTS]: 'batchRef'
-    }[tab];
-    
-    const checkLabel = {
-      [TABS.PURCHASE]: 'Truckscale No.',
-      [TABS.TRANSFER]: 'Truckscale No.',
-      [TABS.PRODUCTION]: 'Batch No.',
-      [TABS.ISSUANCE]: 'Withdrawal Slip No.',
-      [TABS.BYPRODUCTS]: 'Batch Reference No.'
-    }[tab];
-
-    if (checkKey) {
-      const val = processedRow[checkKey];
-      if (val !== undefined && val !== null && val !== '') {
-        const normalized = String(val).replace(/\\s+/g, '').toLowerCase();
-        if (normalized) {
-           const isDuplicate = data[tab]?.some(r => {
-             if (txModal.isEdit && r.id === processedRow.id) return false;
-             const rVal = r[checkKey];
-             if (rVal === undefined || rVal === null || rVal === '') return false;
-             return String(rVal).replace(/\\s+/g, '').toLowerCase() === normalized;
-           });
-           
-           if (isDuplicate) {
-              setTxDuplicateError([{ tab, label: checkLabel, original: val, count: 2 }]);
-              return; // Do not save, do not close txModal
-           }
+new_duplicates = """  const duplicates = useMemo(() => {
+    const dups = [];
+    const checkDuplicates = (tab, keyName, label) => {
+      if (!data || !data[tab]) return;
+      const seen = {};
+      data[tab].forEach((row) => {
+        const val = row[keyName];
+        if (val === undefined || val === null || val === '') return;
+        const normalized = String(val).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        if (!normalized) return;
+        if (seen[normalized]) {
+          seen[normalized].count++;
+        } else {
+          seen[normalized] = { count: 1, original: val, tab, label };
         }
-      }
-    }
+      });
+      Object.values(seen).forEach(item => {
+        if (item.count > 1) {
+          dups.push(item);
+        }
+      });
+    };
 
-    const newData = { ...data };
-    if (!newData[tab]) newData[tab] = [];
-    
-    if (txModal.isEdit) {
-      const idx = newData[tab].findIndex(r => r.id === processedRow.id);
-      if (idx !== -1) {
-        newData[tab][idx] = processedRow;
-      }
-    } else {
-      newData[tab].push(processedRow);
-    }
-    
-    syncCloudState(newData);
-    setTxModal({ isOpen: false, row: null, tab: null, isEdit: false });
-  };"""
+    const checkFarmerSeasons = () => {
+      if (!data || !data[TABS.PURCHASE]) return;
+      const seen = {};
+      data[TABS.PURCHASE].forEach(row => {
+        const farmer = row.supplier;
+        const dateStr = row.date;
+        if (!farmer || !dateStr) return;
+        const [y, m, d] = dateStr.split('-');
+        if (!y || !m) return;
+        
+        const year = parseInt(y, 10);
+        const month = parseInt(m, 10);
+        const season = month <= 6 ? '1st Cropping Season' : '2nd Cropping Season';
+        
+        const normalizedFarmer = String(farmer).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        if (!normalizedFarmer) return;
+        
+        const key = `${normalizedFarmer}-${year}-${season}`;
+        
+        if (seen[key]) {
+          seen[key].count++;
+        } else {
+          seen[key] = { 
+            count: 1, 
+            original: farmer, 
+            tab: TABS.PURCHASE, 
+            label: `Farmer in ${season} ${year}`,
+            season: season,
+            year: year
+          };
+        }
+      });
+      
+      Object.values(seen).forEach(item => {
+        if (item.count > 1) {
+          dups.push(item);
+        }
+      });
+    };
 
-code = code.replace(save_pattern, new_save)
+    checkDuplicates(TABS.PURCHASE, 'truckscaleControlNo', 'Truckscale No.');
+    checkFarmerSeasons();
+    checkDuplicates(TABS.TRANSFER, 'truckscaleControlNo', 'Truckscale No.');
+    checkDuplicates(TABS.PRODUCTION, 'batchNo', 'Batch No.');
+    checkDuplicates(TABS.ISSUANCE, 'withdrawalSlipNo', 'Withdrawal Slip No.');
+    checkDuplicates(TABS.BYPRODUCTS, 'batchRef', 'Batch Reference No.');
 
-# modify DuplicateModal JSX
-dup_modal_pattern = """      {showDuplicateModal && (
-        <DuplicateModal 
-          duplicates={duplicates} 
-          onClose={() => setShowDuplicateModal(false)} 
-        />
-      )}"""
-new_dup_modal = """      {showDuplicateModal && (
-        <DuplicateModal 
-          duplicates={duplicates} 
-          onClose={() => setShowDuplicateModal(false)} 
-        />
-      )}
-      {txDuplicateError && (
-        <DuplicateModal 
-          duplicates={txDuplicateError} 
-          onClose={() => setTxDuplicateError(null)} 
-        />
-      )}"""
-code = code.replace(dup_modal_pattern, new_dup_modal)
+    return dups;
+  }, [data]);"""
+
+content = re.sub(
+    r"  const duplicates = useMemo\(\(\) => \{.*?\n  \}, \[data\]\);",
+    new_duplicates,
+    content,
+    flags=re.DOTALL
+)
 
 with open('src/App.tsx', 'w') as f:
-    f.write(code)
+    f.write(content)
