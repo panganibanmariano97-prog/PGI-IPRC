@@ -1,40 +1,52 @@
 import re
 
 with open('src/utils.ts', 'r') as f:
-    code = f.read()
+    content = f.read()
 
-old_settings = """export const initialSettings = {
-  facilityName: "Isabela Rice Processing Complex",
-  accounts: [
-    { id: 'a1', role: ROLES.ACCOUNTING, label: 'Administrator', username: 'admin', passcode: 'admin123' },
-    { id: 'a2', role: ROLES.PURCHASE, label: 'Purchasing Dept', username: 'purchase', passcode: 'pur123' },
-    { id: 'a3', role: ROLES.PRODUCTION, label: 'Production Dept', username: 'production', passcode: 'prod123' },
-    { id: 'a4', role: ROLES.OBSERVER, label: 'Observer 1', username: 'obs1', passcode: 'obs123' },
-    { id: 'a5', role: ROLES.OBSERVER, label: 'Observer 2', username: 'obs2', passcode: 'obs123' },
-    { id: 'a6', role: ROLES.OBSERVER, label: 'Observer 3', username: 'obs3', passcode: 'obs123' },
-    { id: 'a7', role: ROLES.OBSERVER, label: 'Observer 4', username: 'obs4', passcode: 'obs123' }
-  ],
-  bagSizes: DEFAULT_BAG_SIZES,
-  warehouses: DEFAULT_WAREHOUSES
-};"""
+# Update createEmptyRow
+create_purchase = "return { id, date, truckscaleControlNo: '', supplier: '', address: '', idNo: '', areaHarvested: 0, variety: '', bags: 0, weight: 0, price: 0, total: 0 };"
+content = re.sub(
+    r"return \{ id, date, truckscaleControlNo: '', supplier: '', variety: '', bags: 0, weight: 0, price: 0, total: 0 \};",
+    create_purchase,
+    content
+)
 
-new_settings = """export const initialSettings = {
-  facilityName: "Isabela Rice Processing Complex",
-  bagSizes: DEFAULT_BAG_SIZES,
-  warehouses: DEFAULT_WAREHOUSES
-};"""
+# Update getColumns
+cols_purchase = """  [TABS.PURCHASE]: [
+    { key: 'date', label: 'Date', type: 'date' },
+    { key: 'truckscaleControlNo', label: 'Truckscale Control No.', type: 'text' },
+    { key: 'supplier', label: 'Supplier/Farmer', type: 'text' },
+    { key: 'address', label: 'Address', type: 'text' },
+    { key: 'idNo', label: 'ID No.', type: 'text' },
+    { key: 'areaHarvested', label: 'Area Harvested (ha)', type: 'number' },
+    { key: 'variety', label: 'Item/Variety', type: 'text' },
+    { key: 'bags', label: 'Bags', type: 'number', sum: true },
+    { key: 'weight', label: 'Net Weight (kg)', type: 'number', sum: true },
+    { key: 'price', label: 'Price/kg (₱)', type: 'number' },
+    { key: 'total', label: 'Total Cost (₱)', type: 'number', sum: true, readOnly: true }
+  ],"""
 
-if old_settings in code:
-    code = code.replace(old_settings, new_settings)
-    print("Patched initialSettings")
+content = re.sub(
+    r"\[TABS\.PURCHASE\]: \[\s*\{ key: 'date', label: 'Date', type: 'date' \},\s*\{ key: 'truckscaleControlNo', label: 'Truckscale Control No\.', type: 'text' \},\s*\{ key: 'supplier', label: 'Supplier/Farmer', type: 'text' \},\s*\{ key: 'variety', label: 'Item/Variety', type: 'text' \},\s*\{ key: 'bags', label: 'Bags', type: 'number', sum: true \},\s*\{ key: 'weight', label: 'Net Weight \(kg\)', type: 'number', sum: true \},\s*\{ key: 'price', label: 'Price/kg \(₱\)', type: 'number' \},\s*\{ key: 'total', label: 'Total Cost \(₱\)', type: 'number', sum: true, readOnly: true \}\s*\],",
+    cols_purchase,
+    content
+)
 
-old_migrate = """  if (!rawSettings.accounts) {
-    newSettings.accounts = initialSettings.accounts;
-  }"""
+# Update initialData (TABS.PURCHASE array elements)
+content = content.replace(
+    "truckscaleControlNo: 'TC-1001', supplier: 'Santiago Farmers Coop', variety:",
+    "truckscaleControlNo: 'TC-1001', supplier: 'Santiago Farmers Coop', address: '', idNo: '', areaHarvested: 0, variety:"
+)
+content = content.replace(
+    "truckscaleControlNo: 'TC-1002', supplier: 'Santiago Farmers Coop', variety:",
+    "truckscaleControlNo: 'TC-1002', supplier: 'Santiago Farmers Coop', address: '', idNo: '', areaHarvested: 0, variety:"
+)
+content = content.replace(
+    "truckscaleControlNo: 'TC-1003', supplier: 'Alicia Agri-Corp', variety:",
+    "truckscaleControlNo: 'TC-1003', supplier: 'Alicia Agri-Corp', address: '', idNo: '', areaHarvested: 0, variety:"
+)
 
-if old_migrate in code:
-    code = code.replace(old_migrate, "")
-    print("Patched migrateSettings")
 
 with open('src/utils.ts', 'w') as f:
-    f.write(code)
+    f.write(content)
+

@@ -135,7 +135,7 @@ export const createEmptyRow = (tab, defaultDate, defaultBagSize = '50kgs', defau
   const date = defaultDate || `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
   switch (tab) {
     case TABS.PURCHASE: 
-      return { id, date, truckscaleControlNo: '', supplier: '', variety: '', bags: 0, weight: 0, price: 0, total: 0 };
+      return { id, date, truckscaleControlNo: '', supplier: '', address: '', idNo: '', areaHarvested: 0, variety: '', bags: 0, weight: 0, price: 0, total: 0 };
     case TABS.TRANSFER: 
       return { id, date, truckscaleControlNo: '', fromWarehouse: defaultWarehouse, toFacility: '', item: '', bags: 0, netWeight: 0 };
     case TABS.PRODUCTION: 
@@ -152,10 +152,13 @@ export const createEmptyRow = (tab, defaultDate, defaultBagSize = '50kgs', defau
 };
 
 export const getColumns = (bagSizes, warehouses) => ({
-  [TABS.PURCHASE]: [
+    [TABS.PURCHASE]: [
     { key: 'date', label: 'Date', type: 'date' },
     { key: 'truckscaleControlNo', label: 'Truckscale Control No.', type: 'text' },
     { key: 'supplier', label: 'Supplier/Farmer', type: 'text' },
+    { key: 'address', label: 'Address', type: 'text' },
+    { key: 'idNo', label: 'ID No.', type: 'text' },
+    { key: 'areaHarvested', label: 'Area Harvested (ha)', type: 'number' },
     { key: 'variety', label: 'Item/Variety', type: 'text' },
     { key: 'bags', label: 'Bags', type: 'number', sum: true },
     { key: 'weight', label: 'Net Weight (kg)', type: 'number', sum: true },
@@ -242,9 +245,9 @@ export const migrateSettings = (rawSettings) => {
 
 export const initialData = {
   [TABS.PURCHASE]: [
-    { id: generateId(), date: '2023-09-15', truckscaleControlNo: 'TC-1001', supplier: 'Santiago Farmers Coop', variety: 'RC-218 Premium', bags: 100, weight: 5000, price: 21.00, total: 105000 },
-    { id: generateId(), date: '2026-06-18', truckscaleControlNo: 'TC-1002', supplier: 'Santiago Farmers Coop', variety: 'RC-218 Premium', bags: 120, weight: 6000, price: 21.50, total: 129000 },
-    { id: generateId(), date: '2026-06-21', truckscaleControlNo: 'TC-1003', supplier: 'Alicia Agri-Corp', variety: 'SL-8H Hybrid', bags: 200, weight: 10000, price: 23.00, total: 230000 }
+    { id: generateId(), date: '2023-09-15', truckscaleControlNo: 'TC-1001', supplier: 'Santiago Farmers Coop', address: '', idNo: '', areaHarvested: 0, variety: 'RC-218 Premium', bags: 100, weight: 5000, price: 21.00, total: 105000 },
+    { id: generateId(), date: '2026-06-18', truckscaleControlNo: 'TC-1002', supplier: 'Santiago Farmers Coop', address: '', idNo: '', areaHarvested: 0, variety: 'RC-218 Premium', bags: 120, weight: 6000, price: 21.50, total: 129000 },
+    { id: generateId(), date: '2026-06-21', truckscaleControlNo: 'TC-1003', supplier: 'Alicia Agri-Corp', address: '', idNo: '', areaHarvested: 0, variety: 'SL-8H Hybrid', bags: 200, weight: 10000, price: 23.00, total: 230000 }
   ],
   [TABS.TRANSFER]: [
     { id: generateId(), date: '2023-09-18', truckscaleControlNo: 'TR-2001', fromWarehouse: 'NFA ECHAGUE', toFacility: 'Dryer Section 1', item: 'Wet Palay', bags: 100, netWeight: 5000 },

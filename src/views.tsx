@@ -71,17 +71,20 @@ export const InventoryReportView = ({ data, timeframe, selectedMonth, selectedYe
       let includeInRice = true;
       if (selectedBagSize !== 'All' && bagSize !== selectedBagSize) includeInRice = false;
 
-      if (isBefore) {
-        m.wip.beg -= inputPalay;
-        if (includeInRice) { m.rice.beg += totalRiceWeight; m.rice.begBags += bags; }
+if (isBefore) {
+        if (includeInRice) {
+          m.wip.beg -= inputPalay;
+          m.rice.beg += totalRiceWeight; 
+          m.rice.begBags += bags; 
+        }
       }
       if (isWithin) {
-        m.wip.outRice += outputRice;
-        m.wip.outRiceBags += bags;
-        m.wip.outByproduct += byproductVal;
-        m.wip.moves.push({ id: r.id, date: r.date, type: 'Production Output', desc: `Batch: ${r.batchRef}`, in: 0, outRice: outputRice, outRiceBags: bags, outByproduct: byproductVal });
-        
         if (includeInRice) {
+          m.wip.outRice += outputRice;
+          m.wip.outRiceBags += bags;
+          m.wip.outByproduct += byproductVal;
+          m.wip.moves.push({ id: r.id, date: r.date, type: 'Production Output', desc: `Batch: ${r.batchRef}`, in: 0, outRice: outputRice, outRiceBags: bags, outByproduct: byproductVal });
+              
           m.rice.in += totalRiceWeight;
           m.rice.inBags += bags;
           m.rice.moves.push({ id: r.id, date: r.date, type: 'Production Output', desc: `Batch: ${r.batchRef} (${bagSize})`, in: totalRiceWeight, out: 0, inBags: bags, outBags: 0 });
@@ -324,7 +327,16 @@ export const InventoryReportView = ({ data, timeframe, selectedMonth, selectedYe
       dataRows.push([]);
       dataRows.push(["Detailed Daily Movement Ledger"]);
       dataRows.push(["Date", "Action / Reference", "Rice Hull (In)", "Rice Hull (Out)", "Rice Bran (In)", "Rice Bran (Out)", "Brewer (In)", "Brewer (Out)", "Spoilage (In)", "Spoilage (Out)", "Shrinkage (In)", "Shrinkage (Out)", "Loss (In)", "Loss (Out)", "Total (In)", "Total (Out)", "Running Balance (Total kg)"]);
-      metrics.byproducts.moves.forEach(m => dataRows.push([
+      metrics.byproducts.moves.filter(move => {
+        if (!selectedByproductCategory || selectedByproductCategory === 'All') return true;
+        if (selectedByproductCategory === 'Rice Hull') return move.in.riceHull !== 0 || move.out.riceHull !== 0;
+        if (selectedByproductCategory === 'Rice Bran') return move.in.riceBran !== 0 || move.out.riceBran !== 0;
+        if (selectedByproductCategory === 'Brewer') return move.in.brewer !== 0 || move.out.brewer !== 0;
+        if (selectedByproductCategory === 'Spoilage (Yellow Rice)') return move.in.spoilage !== 0 || move.out.spoilage !== 0;
+        if (selectedByproductCategory === 'Shrinkage') return move.in.shrinkage !== 0 || move.out.shrinkage !== 0;
+        if (selectedByproductCategory === 'Loss') return move.in.loss !== 0 || move.out.loss !== 0;
+        return true;
+      }).forEach(m => dataRows.push([
         formatToMMDDYYYY(m.date), `${m.type} - ${m.desc || ''}`,
         fmtQty(m.in.riceHull), fmtQty(m.out.riceHull),
         fmtQty(m.in.riceBran), fmtQty(m.out.riceBran),
@@ -579,7 +591,16 @@ export const InventoryReportView = ({ data, timeframe, selectedMonth, selectedYe
                       <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.loss.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
                       <td className="p-3 text-right font-mono font-bold text-emerald-900">{catMetrics.beg.total.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
                     </tr>
-                    {catMetrics.moves.map((move, idx) => {
+                    {catMetrics.moves.filter(move => {
+                      if (!selectedByproductCategory || selectedByproductCategory === 'All') return true;
+                      if (selectedByproductCategory === 'Rice Hull') return move.in.riceHull !== 0 || move.out.riceHull !== 0;
+                      if (selectedByproductCategory === 'Rice Bran') return move.in.riceBran !== 0 || move.out.riceBran !== 0;
+                      if (selectedByproductCategory === 'Brewer') return move.in.brewer !== 0 || move.out.brewer !== 0;
+                      if (selectedByproductCategory === 'Spoilage (Yellow Rice)') return move.in.spoilage !== 0 || move.out.spoilage !== 0;
+                      if (selectedByproductCategory === 'Shrinkage') return move.in.shrinkage !== 0 || move.out.shrinkage !== 0;
+                      if (selectedByproductCategory === 'Loss') return move.in.loss !== 0 || move.out.loss !== 0;
+                      return true;
+                    }).map((move, idx) => {
                       const netRiceHull = move.in.riceHull - move.out.riceHull;
                       const netRiceBran = move.in.riceBran - move.out.riceBran;
                       const netBrewer = move.in.brewer - move.out.brewer;
@@ -692,13 +713,18 @@ export const DashboardView = ({ filteredData, bagSizes }) => {
       }
     });
 
-    const averageRecoveryRate = totalInputMilled > 0 
-      ? ((totalOutputRiceKg / totalInputMilled) * 100).toFixed(2) 
+const averageRecoveryRate = totalInputMilled > 0 
+      ? ((totalOutputRiceKg / totalInputMilled) * 100).toFixed(2)
+      : '0.00';
+
+    const averagePricePerKg = totalPurchasedPalay > 0
+      ? (totalPurchasedCost / totalPurchasedPalay).toFixed(2)
       : '0.00';
 
     return {
       totalPurchasedPalay,
       totalPurchasedCost,
+      averagePricePerKg,
       totalTransferredWeight,
       totalInputMilled,
       totalOutputRiceKg,
@@ -723,10 +749,10 @@ export const DashboardView = ({ filteredData, bagSizes }) => {
           <div className="p-3 bg-emerald-100 text-emerald-800 rounded-lg">
             <ShoppingCart size={22} />
           </div>
-          <div>
+<div>
             <p className="text-xs font-bold uppercase tracking-wider text-amber-800">Palay Purchased</p>
             <p className="text-xl font-black text-emerald-900">{stats.totalPurchasedPalay.toLocaleString()} kg</p>
-            <p className="text-xs text-emerald-700/80 mt-0.5 font-bold">Cost: ₱{stats.totalPurchasedCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+            <p className="text-xs text-emerald-700/80 mt-0.5 font-bold">Cost: ₱{stats.totalPurchasedCost.toLocaleString(undefined, { maximumFractionDigits: 0 })} | Avg: ₱{stats.averagePricePerKg}/kg</p>
           </div>
         </div>
 

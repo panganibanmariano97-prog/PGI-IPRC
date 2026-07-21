@@ -206,7 +206,7 @@ export const FilterToolbar = ({
 }) => {
   const showBagFilter = activeTab === TABS.PRODUCTION || activeTab === TABS.ISSUANCE || activeTab === TABS.INVENTORY || activeTab === TABS.OTHERS;
   const showWarehouseFilter = activeTab === TABS.TRANSFER;
-  const showByproductFilter = false;
+  const showByproductFilter = activeTab === TABS.INVENTORY || activeTab === TABS.BYPRODUCTS;
 
   return (
     <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
