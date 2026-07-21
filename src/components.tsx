@@ -358,15 +358,25 @@ export const DataGrid = ({ columns, data, onUpdate, onAddRow, onDeleteRow, onEdi
         nextRowIndex = Math.max(0, dataIdx - 1);
         break;
       case 'ArrowDown':
-      case 'Enter':
         nextRowIndex = Math.min(data.length - 1, dataIdx + 1);
+        break;
+      case 'Enter':
+      case 'ArrowRight':
+        if (colIndex < columns.length - 1) {
+          nextColIndex = colIndex + 1;
+        } else if (dataIdx < data.length - 1) {
+          nextRowIndex = dataIdx + 1;
+          nextColIndex = 0;
+        }
         if (e.key === 'Enter') e.preventDefault();
         break;
       case 'ArrowLeft':
-        nextColIndex = Math.max(0, colIndex - 1);
-        break;
-      case 'ArrowRight':
-        nextColIndex = Math.min(columns.length - 1, colIndex + 1);
+        if (colIndex > 0) {
+          nextColIndex = colIndex - 1;
+        } else if (dataIdx > 0) {
+          nextRowIndex = dataIdx - 1;
+          nextColIndex = columns.length - 1;
+        }
         break;
       default:
         return;
@@ -374,9 +384,20 @@ export const DataGrid = ({ columns, data, onUpdate, onAddRow, onDeleteRow, onEdi
 
     if (nextRowIndex !== dataIdx || nextColIndex !== colIndex) {
       e.preventDefault();
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-         while(columns[nextColIndex]?.readOnly && (e.key === 'ArrowRight' ? nextColIndex < columns.length - 1 : nextColIndex > 0)) {
-             nextColIndex += e.key === 'ArrowRight' ? 1 : -1;
+      
+      // Skip read-only columns when moving left/right
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Enter') {
+         const direction = (e.key === 'ArrowLeft') ? -1 : 1;
+         while(columns[nextColIndex]?.readOnly) {
+             nextColIndex += direction;
+             if (nextColIndex < 0 || nextColIndex >= columns.length) {
+                 break;
+             }
+         }
+         
+         // If we went out of bounds while skipping read-only, revert or wrap (simplified handling)
+         if (nextColIndex < 0 || nextColIndex >= columns.length) {
+             return;
          }
       }
       
@@ -860,10 +881,12 @@ export const DuplicateModal = ({ duplicates, onClose }) => {
 
 export const TransactionModal = ({ isOpen, onClose, onSave, title, columns, initialData }) => {
   const [formData, setFormData] = useState({});
+  const inputRefs = useRef([]);
 
   useEffect(() => {
     if (isOpen) {
       setFormData(initialData || {});
+      inputRefs.current = [];
     }
   }, [isOpen, initialData]);
 
@@ -881,6 +904,20 @@ export const TransactionModal = ({ isOpen, onClose, onSave, title, columns, init
     onSave(formData);
   };
 
+  const handleKeyDown = (e, index) => {
+    if (e.key === 'Enter' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const nextInput = inputRefs.current[index + 1];
+      if (nextInput) nextInput.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prevInput = inputRefs.current[index - 1];
+      if (prevInput) prevInput.focus();
+    }
+  };
+
+  let inputIndex = 0;
+
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <div className="bg-white border-t-8 border-yellow-500 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col">
@@ -892,17 +929,16 @@ export const TransactionModal = ({ isOpen, onClose, onSave, title, columns, init
         </div>
         
         <div className="p-6 overflow-y-auto space-y-4 flex-grow">
-          {columns.map(col => {
-            // Computed or read-only columns shouldn't usually be editable, but let's hide them or show as read-only
-            // In our system, some columns are purely computed by handleDataUpdate, some are inputs.
-            // Let's just render inputs for all except readOnly.
+          {columns.map((col) => {
             if (col.readOnly) return null;
-            
+            const currentIndex = inputIndex++;
             return (
               <div key={col.key} className="flex flex-col">
                 <label className="text-xs font-bold text-emerald-700 mb-1">{col.label}</label>
                 {col.type === 'select' ? (
                   <select
+                    ref={el => inputRefs.current[currentIndex] = el}
+                    onKeyDown={(e) => handleKeyDown(e, currentIndex)}
                     className="p-2 border border-emerald-200 rounded-lg bg-emerald-50/30 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all"
                     value={formData[col.key] || ''}
                     onChange={(e) => handleChange(col.key, e.target.value, col.type)}
@@ -914,6 +950,8 @@ export const TransactionModal = ({ isOpen, onClose, onSave, title, columns, init
                   </select>
                 ) : (
                   <input
+                    ref={el => inputRefs.current[currentIndex] = el}
+                    onKeyDown={(e) => handleKeyDown(e, currentIndex)}
                     type={col.type === 'number' ? 'number' : (col.type === 'date' ? 'date' : 'text')}
                     className="p-2 border border-emerald-200 rounded-lg bg-emerald-50/30 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all"
                     value={formData[col.key] || ''}

@@ -319,14 +319,33 @@ if (isBefore) {
       dataRows.push(["Date", "Action / Reference", "Additions (In) (Bags)", "Deductions (Out) (Bags)", "Running Balance (Bags)", "Additions (In) (kg)", "Deductions (Out) (kg)", "Running Balance (kg)"]);
       metrics.rice.moves.forEach(m => dataRows.push([formatToMMDDYYYY(m.date), `${m.type} - ${m.desc || ''}`, fmtQty(m.inBags || 0), fmtQty(m.outBags || 0), fmtQty(m.balanceBags || 0), fmtQty(m.in), fmtQty(m.out), fmtQty(m.balance)]));
     } else if (type === 'byproducts') {
+      const showAll = !selectedByproductCategory || selectedByproductCategory === 'All';
+      const showRiceHull = showAll || selectedByproductCategory === 'Rice Hull';
+      const showRiceBran = showAll || selectedByproductCategory === 'Rice Bran';
+      const showBrewer = showAll || selectedByproductCategory === 'Brewer';
+      const showSpoilage = showAll || selectedByproductCategory === 'Spoilage (Yellow Rice)';
+      const showShrinkage = showAll || selectedByproductCategory === 'Shrinkage';
+      const showLoss = showAll || selectedByproductCategory === 'Loss';
+      
       title = 'CONSOLIDATED BYPRODUCTS LEDGER';
-      numCols = 17;
+      
+      let headerRow = ["Date", "Action / Reference"];
+      if (showRiceHull) headerRow.push("Rice Hull (In)", "Rice Hull (Out)");
+      if (showRiceBran) headerRow.push("Rice Bran (In)", "Rice Bran (Out)");
+      if (showBrewer) headerRow.push("Brewer (In)", "Brewer (Out)");
+      if (showSpoilage) headerRow.push("Spoilage (In)", "Spoilage (Out)");
+      if (showShrinkage) headerRow.push("Shrinkage (In)", "Shrinkage (Out)");
+      if (showLoss) headerRow.push("Loss (In)", "Loss (Out)");
+      headerRow.push("Total (In)", "Total (Out)", "Running Balance (Total kg)");
+      
+      numCols = headerRow.length;
+      
       dataRows.push(["Category Summary"]);
       dataRows.push(["Beginning Balance (kg)", "Additions (In) (kg)", "Deductions (Out) (kg)", "Ending Balance (kg)"]);
       dataRows.push([fmtQty(metrics.byproducts.beg.total), fmtQty(metrics.byproducts.in.total), fmtQty(metrics.byproducts.out.total), fmtQty(metrics.byproducts.end.total)]);
       dataRows.push([]);
       dataRows.push(["Detailed Daily Movement Ledger"]);
-      dataRows.push(["Date", "Action / Reference", "Rice Hull (In)", "Rice Hull (Out)", "Rice Bran (In)", "Rice Bran (Out)", "Brewer (In)", "Brewer (Out)", "Spoilage (In)", "Spoilage (Out)", "Shrinkage (In)", "Shrinkage (Out)", "Loss (In)", "Loss (Out)", "Total (In)", "Total (Out)", "Running Balance (Total kg)"]);
+      dataRows.push(headerRow);
       metrics.byproducts.moves.filter(move => {
         if (!selectedByproductCategory || selectedByproductCategory === 'All') return true;
         if (selectedByproductCategory === 'Rice Hull') return move.in.riceHull !== 0 || move.out.riceHull !== 0;
@@ -336,17 +355,17 @@ if (isBefore) {
         if (selectedByproductCategory === 'Shrinkage') return move.in.shrinkage !== 0 || move.out.shrinkage !== 0;
         if (selectedByproductCategory === 'Loss') return move.in.loss !== 0 || move.out.loss !== 0;
         return true;
-      }).forEach(m => dataRows.push([
-        formatToMMDDYYYY(m.date), `${m.type} - ${m.desc || ''}`,
-        fmtQty(m.in.riceHull), fmtQty(m.out.riceHull),
-        fmtQty(m.in.riceBran), fmtQty(m.out.riceBran),
-        fmtQty(m.in.brewer), fmtQty(m.out.brewer),
-        fmtQty(m.in.spoilage), fmtQty(m.out.spoilage),
-        fmtQty(m.in.shrinkage), fmtQty(m.out.shrinkage),
-        fmtQty(m.in.loss), fmtQty(m.out.loss),
-        fmtQty(m.in.total), fmtQty(m.out.total),
-        fmtQty(m.balance.total)
-      ]));
+      }).forEach(m => {
+        let row = [formatToMMDDYYYY(m.date), `${m.type} - ${m.desc || ''}`];
+        if (showRiceHull) row.push(fmtQty(m.in.riceHull), fmtQty(m.out.riceHull));
+        if (showRiceBran) row.push(fmtQty(m.in.riceBran), fmtQty(m.out.riceBran));
+        if (showBrewer) row.push(fmtQty(m.in.brewer), fmtQty(m.out.brewer));
+        if (showSpoilage) row.push(fmtQty(m.in.spoilage), fmtQty(m.out.spoilage));
+        if (showShrinkage) row.push(fmtQty(m.in.shrinkage), fmtQty(m.out.shrinkage));
+        if (showLoss) row.push(fmtQty(m.in.loss), fmtQty(m.out.loss));
+        row.push(fmtQty(m.in.total), fmtQty(m.out.total), fmtQty(m.balance.total));
+        dataRows.push(row);
+      });
     }
 
     exportToStyledXLSX([{
@@ -551,6 +570,13 @@ if (isBefore) {
 
         {(() => {
           const catMetrics = metrics.byproducts;
+          const showAll = !selectedByproductCategory || selectedByproductCategory === 'All';
+          const showRiceHull = showAll || selectedByproductCategory === 'Rice Hull';
+          const showRiceBran = showAll || selectedByproductCategory === 'Rice Bran';
+          const showBrewer = showAll || selectedByproductCategory === 'Brewer';
+          const showSpoilage = showAll || selectedByproductCategory === 'Spoilage (Yellow Rice)';
+          const showShrinkage = showAll || selectedByproductCategory === 'Shrinkage';
+          const showLoss = showAll || selectedByproductCategory === 'Loss';
           return (
             <div className="overflow-hidden rounded-xl border border-amber-200 bg-white shadow-sm mt-8">
               <div className="bg-amber-800 px-4 py-3 border-b-4 border-amber-50 flex justify-between items-center">
@@ -570,12 +596,12 @@ if (isBefore) {
                     <tr className="bg-amber-50 text-emerald-900 text-[11px] border-b border-amber-200">
                       <th className="p-3 font-semibold border-r border-amber-200 w-[10%]">Date</th>
                       <th className="p-3 font-semibold border-r border-amber-200 w-[15%]">Movement Details</th>
-                      <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Rice Hull</th>
-                      <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Rice Bran</th>
-                      <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Brewer</th>
-                      <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Spoilage</th>
-                      <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Shrinkage</th>
-                      <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Loss</th>
+                      {showRiceHull && <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Rice Hull</th>}
+                      {showRiceBran && <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Rice Bran</th>}
+                      {showBrewer && <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Brewer</th>}
+                      {showSpoilage && <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Spoilage</th>}
+                      {showShrinkage && <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Shrinkage</th>}
+                      {showLoss && <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Loss</th>}
                       <th className="p-3 font-semibold text-right text-emerald-900">Running Balance (Total kg)</th>
                     </tr>
                   </thead>
@@ -583,12 +609,12 @@ if (isBefore) {
                     <tr className="bg-gray-50/50">
                       <td className="p-3 border-r border-amber-100 text-gray-500 font-semibold text-center font-mono">{beginningDateStr}</td>
                       <td className="p-3 border-r border-amber-100 text-emerald-800 font-bold">Beginning Balance</td>
-                      <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.riceHull.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
-                      <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.riceBran.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
-                      <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.brewer.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
-                      <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.spoilage.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
-                      <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.shrinkage.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
-                      <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.loss.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
+                      {showRiceHull && <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.riceHull.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>}
+                      {showRiceBran && <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.riceBran.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>}
+                      {showBrewer && <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.brewer.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>}
+                      {showSpoilage && <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.spoilage.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>}
+                      {showShrinkage && <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.shrinkage.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>}
+                      {showLoss && <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.loss.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>}
                       <td className="p-3 text-right font-mono font-bold text-emerald-900">{catMetrics.beg.total.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
                     </tr>
                     {catMetrics.moves.filter(move => {
@@ -607,7 +633,7 @@ if (isBefore) {
                       const netSpoilage = move.in.spoilage - move.out.spoilage;
                       const netShrinkage = move.in.shrinkage - move.out.shrinkage;
                       const netLoss = move.in.loss - move.out.loss;
-                      
+                         
                       const renderNet = (val) => {
                         if (val === 0) return '-';
                         return <span className={val > 0 ? "text-emerald-700" : "text-red-700"}>{val > 0 ? `+${val}` : val} kg</span>;
@@ -617,26 +643,16 @@ if (isBefore) {
                         <tr key={`byp-${move.id || idx}-${move.type}`} className="hover:bg-amber-50/40 transition-colors border-t border-dashed border-amber-100">
                           <td className="p-3 border-r border-amber-100 font-mono text-gray-600">{formatToMMDDYYYY(move.date)}</td>
                           <td className="p-3 border-r border-amber-100"><span className="font-bold text-amber-800">{move.type}</span> <span className="text-gray-500 ml-1">{move.desc}</span></td>
-                          <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netRiceHull)}</td>
-                          <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netRiceBran)}</td>
-                          <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netBrewer)}</td>
-                          <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netSpoilage)}</td>
-                          <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netShrinkage)}</td>
-                          <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netLoss)}</td>
+                          {showRiceHull && <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netRiceHull)}</td>}
+                          {showRiceBran && <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netRiceBran)}</td>}
+                          {showBrewer && <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netBrewer)}</td>}
+                          {showSpoilage && <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netSpoilage)}</td>}
+                          {showShrinkage && <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netShrinkage)}</td>}
+                          {showLoss && <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netLoss)}</td>}
                           <td className="p-3 text-right font-mono font-semibold text-emerald-900">{move.balance.total.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
                         </tr>
                       );
                     })}
-                    <tr className="bg-amber-100/50 border-t-2 border-amber-300">
-                      <td className="p-3 border-r border-amber-300 text-emerald-900 font-bold" colSpan={2}>Total Period Summary (Net)</td>
-                      <td className="p-3 border-r border-amber-300 text-right font-mono font-bold text-emerald-700">{(catMetrics.in.riceHull - catMetrics.out.riceHull).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
-                      <td className="p-3 border-r border-amber-300 text-right font-mono font-bold text-emerald-700">{(catMetrics.in.riceBran - catMetrics.out.riceBran).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
-                      <td className="p-3 border-r border-amber-300 text-right font-mono font-bold text-emerald-700">{(catMetrics.in.brewer - catMetrics.out.brewer).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
-                      <td className="p-3 border-r border-amber-300 text-right font-mono font-bold text-emerald-700">{(catMetrics.in.spoilage - catMetrics.out.spoilage).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
-                      <td className="p-3 border-r border-amber-300 text-right font-mono font-bold text-emerald-700">{(catMetrics.in.shrinkage - catMetrics.out.shrinkage).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
-                      <td className="p-3 border-r border-amber-300 text-right font-mono font-bold text-emerald-700">{(catMetrics.in.loss - catMetrics.out.loss).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
-                      <td className="p-3 text-right font-mono font-black text-[13px] text-emerald-950">{catMetrics.end.total.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
-                    </tr>
                   </tbody>
                 </table>
               </div>
