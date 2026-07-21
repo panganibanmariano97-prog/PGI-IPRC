@@ -567,15 +567,26 @@ export const DataGrid = ({ columns, data, onUpdate, onAddRow, onDeleteRow, onEdi
                     </td>
                   );
                 })}
-                {!readOnly && onDeleteRow && (
-                  <td className="p-1 text-center border-b border-amber-100">
-                    <button
-                      onClick={() => onDeleteRow(row.id)}
-                      className="p-1 text-red-600 hover:text-red-900 rounded hover:bg-red-50 transition-colors"
-                      title="Delete Entry Row"
-                    >
-                      <Trash2 size={14} className="mx-auto" />
-                    </button>
+                {!readOnly && (onDeleteRow || onEditRow) && (
+                  <td className="p-1 text-center border-b border-amber-100 whitespace-nowrap">
+                    {onEditRow && (
+                      <button
+                        onClick={() => onEditRow(row)}
+                        className="p-1 text-blue-600 hover:text-blue-900 rounded hover:bg-blue-50 transition-colors mr-1"
+                        title="Edit Entry Row"
+                      >
+                        <Edit2 size={14} className="mx-auto" />
+                      </button>
+                    )}
+                    {onDeleteRow && (
+                      <button
+                        onClick={() => onDeleteRow(row.id)}
+                        className="p-1 text-red-600 hover:text-red-900 rounded hover:bg-red-50 transition-colors"
+                        title="Delete Entry Row"
+                      >
+                        <Trash2 size={14} className="mx-auto" />
+                      </button>
+                    )}
                   </td>
                 )}
               </tr>

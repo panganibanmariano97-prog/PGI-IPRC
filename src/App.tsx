@@ -771,6 +771,16 @@ export default function App() {
   const isReadOnly = user.role === ROLES.OBSERVER || user.role === ROLES.ACCOUNTING;
   const canExport = user.role !== ROLES.OBSERVER;
 
+  const canEditTab = (tab) => {
+    if (isReadOnly) return false;
+    if (user.role === ROLES.ADMINISTRATOR) return true;
+    if (user.role === ROLES.PURCHASE) return tab === TABS.PURCHASE;
+    if (user.role === ROLES.PRODUCTION) {
+      return [TABS.TRANSFER, TABS.PRODUCTION, TABS.ISSUANCE, TABS.BYPRODUCTS].includes(tab);
+    }
+    return false;
+  };
+
   const tabIcons = {
     [TABS.DASHBOARD]: <BarChart3 size={18} />,
     [TABS.INVENTORY]: <ClipboardList size={18} />,
@@ -1004,10 +1014,10 @@ export default function App() {
                   filteredData={filteredData}
                   columns={getColumns(settings.bagSizes || DEFAULT_BAG_SIZES, settings.warehouses || DEFAULT_WAREHOUSES)[TABS.PRODUCTION]}
                   onUpdate={handleDataUpdate}
-                  onAddRow={() => handleOpenAddModal(TABS.PRODUCTION)}
-                  onEditRow={(row) => handleOpenEditModal(TABS.PRODUCTION, row)}
-                  onDeleteRow={(rowId) => handleDeleteRow(TABS.PRODUCTION, rowId)}
-                  readOnly={isReadOnly}
+                  onAddRow={canEditTab(TABS.PRODUCTION) ? () => handleOpenAddModal(TABS.PRODUCTION) : undefined}
+                  onEditRow={canEditTab(TABS.PRODUCTION) ? (row) => handleOpenEditModal(TABS.PRODUCTION, row) : undefined}
+                  onDeleteRow={canEditTab(TABS.PRODUCTION) ? (rowId) => handleDeleteRow(TABS.PRODUCTION, rowId) : undefined}
+                  readOnly={!canEditTab(TABS.PRODUCTION)}
                   bagSizes={settings.bagSizes || DEFAULT_BAG_SIZES}
                 />
               ) : activeTab === TABS.BYPRODUCTS ? (
@@ -1015,20 +1025,20 @@ export default function App() {
                   filteredData={filteredData} 
                   columns={getColumns(settings.bagSizes || DEFAULT_BAG_SIZES, settings.warehouses || DEFAULT_WAREHOUSES)[TABS.BYPRODUCTS]}
                   onUpdate={handleDataUpdate}
-                  onAddRow={() => handleOpenAddModal(TABS.BYPRODUCTS)}
-                  onEditRow={(row) => handleOpenEditModal(TABS.BYPRODUCTS, row)}
-                  onDeleteRow={(rowId) => handleDeleteRow(TABS.BYPRODUCTS, rowId)}
+                  onAddRow={canEditTab(TABS.BYPRODUCTS) ? () => handleOpenAddModal(TABS.BYPRODUCTS) : undefined}
+                  onEditRow={canEditTab(TABS.BYPRODUCTS) ? (row) => handleOpenEditModal(TABS.BYPRODUCTS, row) : undefined}
+                  onDeleteRow={canEditTab(TABS.BYPRODUCTS) ? (rowId) => handleDeleteRow(TABS.BYPRODUCTS, rowId) : undefined}
                   userRole={user.role}
                 />
               ) : (
                 <DataGrid
                   columns={getColumns(settings.bagSizes || DEFAULT_BAG_SIZES, settings.warehouses || DEFAULT_WAREHOUSES)[activeTab] || []}
                   data={filteredData[activeTab] || []}
-                  readOnly={isReadOnly}
+                  readOnly={!canEditTab(activeTab)}
                   onUpdate={(rowId, field, value) => handleDataUpdate(activeTab, rowId, field, value)}
-                  onAddRow={() => handleOpenAddModal(activeTab)}
-                  onEditRow={(row) => handleOpenEditModal(activeTab, row)}
-                  onDeleteRow={(rowId) => handleDeleteRow(activeTab, rowId)}
+                  onAddRow={canEditTab(activeTab) ? () => handleOpenAddModal(activeTab) : undefined}
+                  onEditRow={canEditTab(activeTab) ? (row) => handleOpenEditModal(activeTab, row) : undefined}
+                  onDeleteRow={canEditTab(activeTab) ? (rowId) => handleDeleteRow(activeTab, rowId) : undefined}
                 />
               )}
             </div>
