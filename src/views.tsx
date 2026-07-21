@@ -52,8 +52,8 @@ export const InventoryReportView = ({ data, timeframe, selectedMonth, selectedYe
       if (isWithin) { 
         m.palay.out += val; 
         m.wip.in += val;
-        m.palay.moves.push({ id: r.id, date: r.date, type: 'Transfer to Milling', desc: `Batch: ${r.batchRef}`, in: 0, out: val });
-        m.wip.moves.push({ id: r.id, date: r.date, type: 'Transfer In', desc: `Batch: ${r.batchRef}`, in: val, outRice: 0, outRiceBags: 0, outByproduct: 0 });
+        m.palay.moves.push({ id: r.id, date: r.date, type: 'Transfer to Milling', desc: `TC No: ${r.truckscaleControlNo || ''}`, in: 0, out: val });
+        m.wip.moves.push({ id: r.id, date: r.date, type: 'Transfer In', desc: `TC No: ${r.truckscaleControlNo || ''}`, in: val, outRice: 0, outRiceBags: 0, outByproduct: 0 });
       }
     });
 
@@ -83,11 +83,11 @@ if (isBefore) {
           m.wip.outRice += outputRice;
           m.wip.outRiceBags += bags;
           m.wip.outByproduct += byproductVal;
-          m.wip.moves.push({ id: r.id, date: r.date, type: 'Production Output', desc: `Batch: ${r.batchRef}`, in: 0, outRice: outputRice, outRiceBags: bags, outByproduct: byproductVal });
+          m.wip.moves.push({ id: r.id, date: r.date, type: 'Production Output', desc: `Batch: ${r.batchNo || ''} (${bagSize})`, in: 0, outRice: outputRice, outRiceBags: bags, outByproduct: byproductVal });
               
           m.rice.in += totalRiceWeight;
           m.rice.inBags += bags;
-          m.rice.moves.push({ id: r.id, date: r.date, type: 'Production Output', desc: `Batch: ${r.batchRef} (${bagSize})`, in: totalRiceWeight, out: 0, inBags: bags, outBags: 0 });
+          m.rice.moves.push({ id: r.id, date: r.date, type: 'Production Output', desc: `Batch: ${r.batchNo || ''} (${bagSize})`, in: totalRiceWeight, out: 0, inBags: bags, outBags: 0 });
         }
       }
     });
@@ -252,7 +252,7 @@ if (isBefore) {
     const palayRows = [["Date", "Action / Reference", "Additions (In) (kg)", "Deductions (Out) (kg)", "Running Balance (kg)"]];
     metrics.palay.moves.forEach(m => palayRows.push([formatToMMDDYYYY(m.date), `${m.type} - ${m.desc || ''}`, fmtQty(m.in), fmtQty(m.out), fmtQty(m.balance)]));
     
-    const wipRows = [["Date", "Action / Reference", "Additions (In) (kg)", "Milled Rice (Out) (kg)", "Milled Rice (Out) (Bags)", "Byproduct (Out) (kg)", "Running Balance (kg)"]];
+    const wipRows = [["Date", "Action / Reference", "Additions (In) (kg)", "Deductions (Out) (kg)", "Deductions (Out) (Bags)", "Byproduct (Out) (kg)", "Running Balance (kg)"]];
     metrics.wip.moves.forEach(m => wipRows.push([formatToMMDDYYYY(m.date), `${m.type} - ${m.desc || ''}`, fmtQty(m.in), fmtQty(m.outRice), fmtQty(m.outRiceBags || 0), fmtQty(m.outByproduct), fmtQty(m.balance)]));
     
     const riceRows = [["Date", "Action / Reference", "Additions (In) (Bags)", "Deductions (Out) (Bags)", "Running Balance (Bags)", "Additions (In) (kg)", "Deductions (Out) (kg)", "Running Balance (kg)"]];
@@ -301,11 +301,11 @@ if (isBefore) {
       title = 'WIP PALAY INVENTORY LEDGER';
       numCols = 7;
       dataRows.push(["Category Summary"]);
-      dataRows.push(["Beginning Balance (kg)", "Additions (In) (kg)", "Milled Rice (Out) (kg)", "Milled Rice (Out) (Bags)", "Byproduct (Out) (kg)", "Ending Balance (kg)"]);
+      dataRows.push(["Beginning Balance (kg)", "Additions (In) (kg)", "Deductions (Out) (kg)", "Deductions (Out) (Bags)", "Byproduct (Out) (kg)", "Ending Balance (kg)"]);
       dataRows.push([fmtQty(metrics.wip.beg), fmtQty(metrics.wip.in), fmtQty(metrics.wip.outRice), fmtQty(metrics.wip.outRiceBags), fmtQty(metrics.wip.outByproduct), fmtQty(metrics.wip.end)]);
       dataRows.push([]);
       dataRows.push(["Detailed Daily Movement Ledger"]);
-      dataRows.push(["Date", "Action / Reference", "Additions (In) (kg)", "Milled Rice (Out) (kg)", "Milled Rice (Out) (Bags)", "Byproduct (Out) (kg)", "Running Balance (kg)"]);
+      dataRows.push(["Date", "Action / Reference", "Additions (In) (kg)", "Deductions (Out) (kg)", "Deductions (Out) (Bags)", "Byproduct (Out) (kg)", "Running Balance (kg)"]);
       metrics.wip.moves.forEach(m => dataRows.push([formatToMMDDYYYY(m.date), `${m.type} - ${m.desc || ''}`, fmtQty(m.in), fmtQty(m.outRice), fmtQty(m.outRiceBags || 0), fmtQty(m.outByproduct), fmtQty(m.balance)]));
     } else if (type === 'rice') {
       title = 'MILLED RICE INVENTORY LEDGER';
@@ -476,8 +476,8 @@ if (isBefore) {
                   <th className="p-3 font-semibold border-r border-amber-200 w-[12%]">Date</th>
                   <th className="p-3 font-semibold border-r border-amber-200 w-1/4">Movement Details</th>
                   <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Additions (In)</th>
-                  <th className="p-3 font-semibold border-r border-amber-200 text-right text-red-700">Milled Rice (Out)</th>
-                  <th className="p-3 font-semibold border-r border-amber-200 text-right text-red-700">Milled Rice (Out) Bags</th>
+                  <th className="p-3 font-semibold border-r border-amber-200 text-right text-red-700">Deductions (Out)</th>
+                  <th className="p-3 font-semibold border-r border-amber-200 text-right text-red-700">Deductions (Out) Bags</th>
                   <th className="p-3 font-semibold border-r border-amber-200 text-right text-red-700">Byproduct (Out)</th>
                   <th className="p-3 font-semibold text-right text-emerald-900">Running Balance</th>
                 </tr>
@@ -602,6 +602,8 @@ if (isBefore) {
                       {showSpoilage && <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Spoilage</th>}
                       {showShrinkage && <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Shrinkage</th>}
                       {showLoss && <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Loss</th>}
+                      <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Additions (In)</th>
+                      <th className="p-3 font-semibold border-r border-amber-200 text-right text-red-700">Deductions (Out)</th>
                       <th className="p-3 font-semibold text-right text-emerald-900">Running Balance (Total kg)</th>
                     </tr>
                   </thead>
@@ -615,6 +617,8 @@ if (isBefore) {
                       {showSpoilage && <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.spoilage.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>}
                       {showShrinkage && <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.shrinkage.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>}
                       {showLoss && <td className="p-3 border-r border-amber-100 text-right font-mono">{catMetrics.beg.loss.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>}
+                      <td className="p-3 border-r border-amber-100 text-right font-mono text-gray-400">--</td>
+                      <td className="p-3 border-r border-amber-100 text-right font-mono text-gray-400">--</td>
                       <td className="p-3 text-right font-mono font-bold text-emerald-900">{catMetrics.beg.total.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
                     </tr>
                     {catMetrics.moves.filter(move => {
@@ -649,6 +653,8 @@ if (isBefore) {
                           {showSpoilage && <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netSpoilage)}</td>}
                           {showShrinkage && <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netShrinkage)}</td>}
                           {showLoss && <td className="p-3 border-r border-amber-100 text-right font-mono font-medium">{renderNet(netLoss)}</td>}
+                          <td className="p-3 border-r border-amber-100 text-right font-mono font-medium text-emerald-700">{move.in.total > 0 ? `+${move.in.total.toLocaleString()}` : '-'}</td>
+                          <td className="p-3 border-r border-amber-100 text-right font-mono font-medium text-red-700">{move.out.total > 0 ? `-${move.out.total.toLocaleString()}` : '-'}</td>
                           <td className="p-3 text-right font-mono font-semibold text-emerald-900">{move.balance.total.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</td>
                         </tr>
                       );
