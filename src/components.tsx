@@ -39,7 +39,13 @@ export const Login = () => {
         await signInWithEmailAndPassword(auth, email, passcode);
       }
     } catch (err) {
-      setError(err.message || 'Authentication failed. Please verify your details.');
+      if (err.code === 'auth/admin-restricted-operation') {
+        setError('Sign-up is restricted by Firebase administrators. Please ask your administrator to create your account or enable public sign-ups in Firebase Console.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Email/Password sign-in is not enabled in Firebase Console. Please enable it in Authentication settings.');
+      } else {
+        setError(err.message || 'Authentication failed. Please verify your details.');
+      }
     } finally {
       setLoading(false);
     }
@@ -90,7 +96,8 @@ export const Login = () => {
                   required
                 >
                   <option value="" disabled>-- Select Assigned Role --</option>
-                  <option value={ROLES.ACCOUNTING}>Administrator / Accounting</option>
+                  <option value={ROLES.ADMINISTRATOR}>Administrator</option>
+                  <option value={ROLES.ACCOUNTING}>Accounting</option>
                   <option value={ROLES.PURCHASE}>Purchasing Department</option>
                   <option value={ROLES.PRODUCTION}>Production Department</option>
                   <option value={ROLES.OBSERVER}>Observer (View Only)</option>
@@ -183,7 +190,7 @@ export const Login = () => {
             disabled={loading}
             className="w-full flex justify-center mt-2 py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-sm font-black uppercase tracking-wider text-emerald-950 bg-yellow-500 hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            {loading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Authenticate')}
+            {loading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
           </button>
         </form>
       </div>

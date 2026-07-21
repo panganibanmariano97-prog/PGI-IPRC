@@ -226,24 +226,32 @@ export default function App() {
 
   useEffect(() => {
     if (!auth) return;
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (e) {
-        console.error("Cloud Auth Error:", e);
-      }
-    };
-    initAuth();
-
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
+    let unsubscribeUser = null;
+    const unsubscribeAuth = onAuthStateChanged(auth, (u) => {
       setFbUser(u);
-      if (u) setCloudStatus('connected');
+      if (u) {
+        setCloudStatus('connected');
+        const userDocRef = doc(db, 'users', u.uid);
+        unsubscribeUser = onSnapshot(userDocRef, (userDocSnap) => {
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            setUser({ id: u.uid, role: userData.role, label: userData.label, username: u.email });
+            const availableTabs = ROLE_PERMISSIONS[userData.role] || [];
+            setActiveTab(prev => prev ? prev : availableTabs[0]);
+          }
+        }, (e) => {
+          console.error("Failed to fetch user profile", e);
+        });
+      } else {
+        setUser(null);
+        setCloudStatus('offline');
+        if (unsubscribeUser) unsubscribeUser();
+      }
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeUser) unsubscribeUser();
+    };
   }, []);
 
   useEffect(() => {
@@ -655,7 +663,7 @@ export default function App() {
   }
 
   const availableTabs = ROLE_PERMISSIONS[user.role];
-  const isReadOnly = user.role === ROLES.OBSERVER;
+  const isReadOnly = user.role === ROLES.OBSERVER || user.role === ROLES.ACCOUNTING;
   const canExport = user.role !== ROLES.OBSERVER;
 
   const tabIcons = {

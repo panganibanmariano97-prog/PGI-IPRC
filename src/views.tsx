@@ -61,7 +61,7 @@ export const InventoryReportView = ({ data, timeframe, selectedMonth, selectedYe
       const { isBefore, isWithin } = checkDate(r.date);
       const isMilledRice = true;
       const bagSize = r.bagSize || '50kgs';
-      const bags = parseFloat(r.bags) || 0;
+      const bags = parseFloat(r.outputBags) || 0;
       const totalRiceWeight = bags * getBagWeight(bagSize);
       
       const inputPalay = parseFloat(r.inputPalay) || 0;
@@ -446,6 +446,7 @@ export const InventoryReportView = ({ data, timeframe, selectedMonth, selectedYe
                   <th className="p-3 font-semibold border-r border-amber-200 w-1/4">Movement Details</th>
                   <th className="p-3 font-semibold border-r border-amber-200 text-right text-emerald-700">Additions (In)</th>
                   <th className="p-3 font-semibold border-r border-amber-200 text-right text-red-700">Milled Rice (Out)</th>
+                  <th className="p-3 font-semibold border-r border-amber-200 text-right text-red-700">Milled Rice (Out) Bags</th>
                   <th className="p-3 font-semibold border-r border-amber-200 text-right text-red-700">Byproduct (Out)</th>
                   <th className="p-3 font-semibold text-right text-emerald-900">Running Balance</th>
                 </tr>
@@ -457,6 +458,7 @@ export const InventoryReportView = ({ data, timeframe, selectedMonth, selectedYe
                   <td className="p-3 border-r border-amber-100 text-right text-gray-400 font-mono text-xs">--</td>
                   <td className="p-3 border-r border-amber-100 text-right text-gray-400 font-mono text-xs">--</td>
                   <td className="p-3 border-r border-amber-100 text-right text-gray-400 font-mono text-xs">--</td>
+                  <td className="p-3 border-r border-amber-100 text-right text-gray-400 font-mono text-xs">--</td>
                   <td className="p-3 text-right font-mono font-bold text-emerald-900">{metrics.wip.beg.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} kg</td>
                 </tr>
                 {metrics.wip.moves.map((move, idx) => (
@@ -465,6 +467,7 @@ export const InventoryReportView = ({ data, timeframe, selectedMonth, selectedYe
                     <td className="p-3 border-r border-amber-100 text-xs"><span className="font-bold text-amber-800">{move.type}</span> <span className="text-gray-500 ml-2">{move.desc}</span></td>
                     <td className="p-3 border-r border-amber-100 text-right font-mono font-medium text-emerald-700">{move.in > 0 ? `+${move.in.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} kg` : '-'}</td>
                     <td className="p-3 border-r border-amber-100 text-right font-mono font-medium text-red-700">{move.outRice > 0 ? `-${move.outRice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} kg` : '-'}</td>
+                    <td className="p-3 border-r border-amber-100 text-right font-mono font-medium text-red-700">{move.outRiceBags > 0 ? `-${move.outRiceBags.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})} Bags` : '-'}</td>
                     <td className="p-3 border-r border-amber-100 text-right font-mono font-medium text-red-700">{move.outByproduct > 0 ? `-${move.outByproduct.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} kg` : '-'}</td>
                     <td className="p-3 text-right font-mono font-semibold text-emerald-900">{move.balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} kg</td>
                   </tr>
@@ -473,6 +476,7 @@ export const InventoryReportView = ({ data, timeframe, selectedMonth, selectedYe
                   <td className="p-3 border-r border-amber-300 text-emerald-900 text-xs font-bold" colSpan={2}>Total Period Summary</td>
                   <td className="p-3 border-r border-amber-300 text-right font-mono font-bold text-emerald-700">+{metrics.wip.in.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} kg</td>
                   <td className="p-3 border-r border-amber-300 text-right font-mono font-bold text-red-700">-{metrics.wip.outRice.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} kg</td>
+                  <td className="p-3 border-r border-amber-300 text-right font-mono font-bold text-red-700">-{metrics.wip.outRiceBags.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})} Bags</td>
                   <td className="p-3 border-r border-amber-300 text-right font-mono font-bold text-red-700">-{metrics.wip.outByproduct.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} kg</td>
                   <td className="p-3 text-right font-mono font-black text-[15px] text-emerald-950">{metrics.wip.end.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} kg</td>
                 </tr>
@@ -868,7 +872,7 @@ export const ProductionDashboardView = ({ filteredData, columns, onUpdate, onAdd
 };
 
 export const ByproductDashboardView = ({ filteredData, columns, onUpdate, onAddRow, onDeleteRow, onEditRow, userRole }) => {
-  const isAuthorized = userRole === ROLES.ACCOUNTING || userRole === ROLES.PRODUCTION;
+  const isAuthorized = userRole === ROLES.ADMINISTRATOR || userRole === ROLES.PRODUCTION;
 
   const totalMillingByproduct = useMemo(() => {
     return filteredData[TABS.PRODUCTION]?.reduce((sum, row) => {

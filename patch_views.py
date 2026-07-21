@@ -3,19 +3,14 @@ import re
 with open('src/views.tsx', 'r') as f:
     code = f.read()
 
-# ProductionDashboardView
-code = code.replace("export const ProductionDashboardView = ({ filteredData, columns, onUpdate, onAddRow, onDeleteRow, readOnly, bagSizes }) => {",
-"export const ProductionDashboardView = ({ filteredData, columns, onUpdate, onAddRow, onDeleteRow, onEditRow, readOnly, bagSizes }) => {")
+old_auth = "  const isAuthorized = userRole === ROLES.ACCOUNTING || userRole === ROLES.PRODUCTION;"
+new_auth = "  const isAuthorized = userRole === ROLES.ADMINISTRATOR || userRole === ROLES.PRODUCTION;"
 
-code = code.replace("onUpdate={(rowId, field, value) => onUpdate(TABS.PRODUCTION, rowId, field, value)}\n          onAddRow={onAddRow}\n          onDeleteRow={onDeleteRow}",
-"onUpdate={(rowId, field, value) => onUpdate(TABS.PRODUCTION, rowId, field, value)}\n          onAddRow={onAddRow}\n          onDeleteRow={onDeleteRow}\n          onEditRow={onEditRow}")
-
-# ByproductDashboardView
-code = code.replace("export const ByproductDashboardView = ({ filteredData, columns, onUpdate, onAddRow, onDeleteRow, userRole }) => {",
-"export const ByproductDashboardView = ({ filteredData, columns, onUpdate, onAddRow, onDeleteRow, onEditRow, userRole }) => {")
-
-code = code.replace("onUpdate={(rowIndex, field, value) => onUpdate(TABS.BYPRODUCTS, rowIndex, field, value)}\n          onAddRow={() => onAddRow(TABS.BYPRODUCTS)}\n          onDeleteRow={onDeleteRow}",
-"onUpdate={(rowIndex, field, value) => onUpdate(TABS.BYPRODUCTS, rowIndex, field, value)}\n          onAddRow={() => onAddRow(TABS.BYPRODUCTS)}\n          onDeleteRow={onDeleteRow}\n          onEditRow={onEditRow}")
+if old_auth in code:
+    code = code.replace(old_auth, new_auth)
+    print("Patched isAuthorized")
+else:
+    print("Could not find old_auth")
 
 with open('src/views.tsx', 'w') as f:
     f.write(code)
