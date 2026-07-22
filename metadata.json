@@ -1,5 +1,5 @@
 {
-  "name": "Isabela Rice App",
+  "name": "IRPC MANAGEMENT INVENTORY SYSTEM",
   "description": "Inventory Management System for Isabela Rice Processing Complex",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
