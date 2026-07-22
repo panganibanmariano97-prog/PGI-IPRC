@@ -795,6 +795,9 @@ export default function App() {
     if (user.role === ROLES.PRODUCTION) {
       return [TABS.TRANSFER, TABS.PRODUCTION, TABS.ISSUANCE, TABS.BYPRODUCTS].includes(tab);
     }
+    if (user.role === ROLES.OPERATION) {
+      return [TABS.INVENTORY, TABS.PURCHASE, TABS.TRANSFER, TABS.PRODUCTION, TABS.ISSUANCE, TABS.BYPRODUCTS, TABS.OTHERS].includes(tab);
+    }
     return false;
   };
 

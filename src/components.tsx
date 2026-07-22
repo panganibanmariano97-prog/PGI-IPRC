@@ -112,6 +112,7 @@ export const Login = () => {
                   <option value={ROLES.ACCOUNTING}>Accounting</option>
                   <option value={ROLES.PURCHASE}>Purchasing Department</option>
                   <option value={ROLES.PRODUCTION}>Production Department</option>
+                  <option value={ROLES.OPERATION}>Operation Department</option>
                   <option value={ROLES.OBSERVER}>Observer (View Only)</option>
                 </select>
               </div>
