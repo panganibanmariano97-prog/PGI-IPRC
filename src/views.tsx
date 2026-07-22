@@ -1222,6 +1222,7 @@ export const UserDirectoryView = () => {
                 <th className="p-3 font-bold border-r border-emerald-700 w-1/4">Name</th>
                 <th className="p-3 font-bold border-r border-emerald-700">Account Role</th>
                 <th className="p-3 font-bold border-r border-emerald-700">Designation</th>
+                <th className="p-3 font-bold border-r border-emerald-700">Username</th>
                 <th className="p-3 font-bold border-r border-emerald-700">Email Address</th>
                 <th className="p-3 font-bold text-center border-r border-emerald-700">Password</th>
                 <th className="p-3 font-bold text-center w-24">Actions</th>
@@ -1239,6 +1240,7 @@ export const UserDirectoryView = () => {
                     </span>
                   </td>
                   <td className="p-3 border-r border-amber-100">{u.designation || 'N/A'}</td>
+                  <td className="p-3 border-r border-amber-100 font-mono text-xs">{u.username || 'N/A'}</td>
                   <td className="p-3 border-r border-amber-100 font-mono text-xs">{u.email}</td>
                   <td className="p-3 text-center text-xs font-bold text-gray-400 italic border-r border-amber-100">
                     Protected
@@ -1260,7 +1262,7 @@ export const UserDirectoryView = () => {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-gray-500 font-medium">
+                  <td colSpan={7} className="p-6 text-center text-gray-500 font-medium">
                     No users found.
                   </td>
                 </tr>

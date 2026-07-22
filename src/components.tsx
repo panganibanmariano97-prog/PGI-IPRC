@@ -5,7 +5,7 @@ import { ROLES, TABS, getBagWeight, BYPRODUCT_CATEGORIES, formatToMMDDYYYY } fro
 
 import { auth, db } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -36,7 +36,19 @@ export const Login = () => {
           email: email
         });
       } else {
-        await signInWithEmailAndPassword(auth, email, passcode);
+        let signEmail = email;
+        if (!email.includes('@')) {
+          const q = query(collection(db, 'users'), where('username', '==', email));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            signEmail = snapshot.docs[0].data().email;
+          } else {
+             setError('Username not found.');
+             setLoading(false);
+             return;
+          }
+        }
+        await signInWithEmailAndPassword(auth, signEmail, passcode);
       }
     } catch (err) {
       if (err.code === 'auth/admin-restricted-operation') {
@@ -126,17 +138,17 @@ export const Login = () => {
           )}
 
           <div>
-            <label className="block text-[11px] font-black uppercase tracking-wider text-emerald-900 mb-1.5">Email Address</label>
+            <label className="block text-[11px] font-black uppercase tracking-wider text-emerald-900 mb-1.5">{isSignUp ? 'Email Address' : 'Email Address / Username'}</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <UserCircle className="h-5 w-5 text-emerald-700 opacity-50" />
               </div>
               <input
-                type="email"
+                type={isSignUp ? "email" : "text"}
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 className="block w-full pl-10 pr-3 py-3 border border-amber-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 bg-white text-emerald-950 placeholder-emerald-300 transition-all font-mono"
-                placeholder="Enter Email"
+                placeholder={isSignUp ? "Enter Email" : "Enter Email or Username"}
                 required
               />
             </div>
