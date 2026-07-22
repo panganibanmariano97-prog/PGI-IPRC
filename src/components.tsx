@@ -4,7 +4,7 @@ import { Lock, UserCircle, X, AlertCircle, Wheat, Trash2, Plus, Edit2, Settings,
 import { ROLES, TABS, getBagWeight, BYPRODUCT_CATEGORIES, formatToMMDDYYYY } from './utils';
 
 import { auth, db } from './firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
 export const Login = () => {
@@ -989,6 +989,161 @@ export const TransactionModal = ({ isOpen, onClose, onSave, title, columns, init
             Save
           </button>
         </div>
+      </div>
+    </div>
+  );
+};
+
+export const ChangePasswordModal = ({ isOpen, onClose, user }) => {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      
+      const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+      await updatePassword(auth.currentUser, newPassword);
+      setSuccess('Password changed successfully');
+      setTimeout(onClose, 2000);
+    } catch (err) {
+      setError(err.message || 'Failed to change password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-amber-200 overflow-hidden">
+        <div className="bg-emerald-800 px-6 py-4 border-b-4 border-yellow-500 flex justify-between items-center">
+          <h3 className="font-extrabold text-white text-lg">Change Password</h3>
+          <button onClick={onClose} className="text-emerald-200 hover:text-white transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm font-semibold border border-red-200 flex items-center"><AlertCircle size={16} className="mr-2" />{error}</div>}
+          {success && <div className="bg-emerald-50 text-emerald-700 p-3 rounded-lg text-sm font-semibold border border-emerald-200">{success}</div>}
+          
+          <div>
+            <label className="block text-xs font-bold text-emerald-900 mb-1">Current Password</label>
+            <input type="password" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-emerald-900 mb-1">New Password</label>
+            <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-emerald-900 mb-1">Confirm New Password</label>
+            <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 outline-none" />
+          </div>
+          
+          <div className="pt-2 flex justify-end space-x-3">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
+            <button type="submit" disabled={loading} className="px-6 py-2 bg-emerald-800 text-yellow-400 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-all shadow-md disabled:opacity-50">
+              {loading ? 'Updating...' : 'Update Password'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export const DemographicProfile = ({ user, onComplete }) => {
+  const [lastName, setLastName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [middleInitial, setMiddleInitial] = useState('');
+  const [designation, setDesignation] = useState('');
+  const [newUsername, setNewUsername] = useState(user.username || '');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      await setDoc(doc(db, 'users', user.id), {
+        lastName,
+        firstName,
+        middleInitial,
+        designation,
+        label: `${firstName} ${lastName}`.trim(),
+        username: newUsername,
+        isProfileComplete: true
+      }, { merge: true });
+      onComplete();
+    } catch (err) {
+      setError(err.message || 'Failed to save profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-emerald-900 flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="bg-[#fdfbf7] p-8 rounded-2xl shadow-2xl w-full max-w-md border-t-8 border-yellow-500 relative z-10">
+        <div className="flex flex-col items-center mb-6">
+          <h2 className="text-2xl font-black text-emerald-900 mb-2">Complete Profile</h2>
+          <p className="text-sm font-semibold text-amber-700 text-center">Please provide your demographic information to continue.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm font-semibold border border-red-200">
+              {error}
+            </div>
+          )}
+          
+          <div>
+            <label className="block text-xs font-bold text-emerald-900 mb-1">First Name</label>
+            <input type="text" required value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 outline-none" />
+          </div>
+          <div className="flex space-x-4">
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-emerald-900 mb-1">Last Name</label>
+              <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 outline-none" />
+            </div>
+            <div className="w-24">
+              <label className="block text-xs font-bold text-emerald-900 mb-1">M.I.</label>
+              <input type="text" maxLength={2} value={middleInitial} onChange={e => setMiddleInitial(e.target.value)} className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 outline-none" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-emerald-900 mb-1">Designation</label>
+            <input type="text" required value={designation} onChange={e => setDesignation(e.target.value)} className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-emerald-900 mb-1">New Username</label>
+            <input type="text" required value={newUsername} onChange={e => setNewUsername(e.target.value)} className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 outline-none" />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-emerald-800 text-yellow-400 rounded-xl text-sm font-bold shadow-lg shadow-emerald-900/20 hover:bg-emerald-700 transition-all flex justify-center items-center mt-6 disabled:opacity-50"
+          >
+            {loading ? 'Saving...' : 'Save Profile & Continue'}
+          </button>
+        </form>
       </div>
     </div>
   );

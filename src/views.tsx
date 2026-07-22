@@ -1,8 +1,11 @@
+import { collection, query, getDocs, deleteDoc, updateDoc, doc } from 'firebase/firestore';
 // @ts-nocheck
-import React, { useMemo } from 'react';
-import { ClipboardList, Download, Factory, Plus, ShoppingCart, ArrowRightLeft, Package, Truck, Activity, Scale } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { UserCircle, RefreshCw, ClipboardList, Download, Factory, Plus, ShoppingCart, ArrowRightLeft, Package, Truck, Activity, Scale, Edit2, Trash2, Key, AlertCircle, X, MoreVertical } from 'lucide-react';
 import { TABS, getBagWeight, formatToMMDDYYYY, getTimeframeStr, fmtQty, BYPRODUCT_CATEGORIES, ROLES, exportToStyledXLSX } from './utils';
 import { DataGrid } from './components';
+import { db, auth } from './firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 export const InventoryReportView = ({ data, timeframe, selectedMonth, selectedYear, selectedBagSize, selectedByproductCategory, settings, formatMonthLabel, canExport }) => {
   const metrics = React.useMemo(() => {
@@ -1061,6 +1064,217 @@ export const ByproductDashboardView = ({ filteredData, columns, onUpdate, onAddR
         />
       </div>
 
+    </div>
+  );
+};
+
+
+const EditUserModal = ({ isOpen, onClose, user, onSave }) => {
+  const [role, setRole] = useState('');
+  const [designation, setDesignation] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [middleInitial, setMiddleInitial] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setRole(user.role || '');
+      setDesignation(user.designation || '');
+      setFirstName(user.firstName || '');
+      setLastName(user.lastName || '');
+      setMiddleInitial(user.middleInitial || '');
+    }
+  }, [user]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, 'users', user.id), {
+        role, designation, firstName, lastName, middleInitial,
+        label: `${firstName} ${lastName}`.trim()
+      });
+      onSave({ ...user, role, designation, firstName, lastName, middleInitial, label: `${firstName} ${lastName}`.trim() });
+      onClose();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-amber-200 overflow-hidden">
+        <div className="bg-emerald-800 px-6 py-4 flex justify-between items-center border-b-4 border-yellow-500">
+          <h3 className="font-extrabold text-white text-lg">Edit User</h3>
+          <button onClick={onClose} className="text-emerald-200 hover:text-white transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="flex space-x-4">
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-emerald-900 mb-1">First Name</label>
+              <input type="text" required value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 outline-none" />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-emerald-900 mb-1">Last Name</label>
+              <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 outline-none" />
+            </div>
+            <div className="w-20">
+              <label className="block text-xs font-bold text-emerald-900 mb-1">M.I.</label>
+              <input type="text" maxLength={2} value={middleInitial} onChange={e => setMiddleInitial(e.target.value)} className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 outline-none" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-emerald-900 mb-1">Role</label>
+            <select value={role} onChange={e => setRole(e.target.value)} className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 outline-none">
+              <option value="Administrator">Administrator</option>
+              <option value="Accounting">Accounting</option>
+              <option value="Purchase">Purchase</option>
+              <option value="Production">Production</option>
+              <option value="Observer">Observer</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-emerald-900 mb-1">Designation</label>
+            <input type="text" required value={designation} onChange={e => setDesignation(e.target.value)} className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 outline-none" />
+          </div>
+          <div className="pt-2 flex justify-end space-x-3">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-lg">Cancel</button>
+            <button type="submit" disabled={loading} className="px-6 py-2 bg-emerald-800 text-yellow-400 rounded-lg text-sm font-bold hover:bg-emerald-700 disabled:opacity-50">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export const UserDirectoryView = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingUser, setEditingUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const q = query(collection(db, 'users'));
+        const snapshot = await getDocs(q);
+        const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setUsers(usersData);
+      } catch (e) {
+        console.error("Failed to fetch users", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const handleDelete = async (u) => {
+    if (confirm(`Are you sure you want to delete ${u.label || u.email}? This will permanently remove their system access.`)) {
+      try {
+        await deleteDoc(doc(db, 'users', u.id));
+        setUsers(users.filter(user => user.id !== u.id));
+      } catch (err) {
+        alert('Failed to delete user.');
+      }
+    }
+  };
+
+  const handleResetPassword = async (u) => {
+    if (confirm(`Send password reset email to ${u.email}?`)) {
+      try {
+        await sendPasswordResetEmail(auth, u.email);
+        alert(`Password reset email sent to ${u.email}`);
+      } catch (err) {
+        alert('Failed to send password reset email.');
+      }
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-xl border border-amber-200/60 shadow-lg min-h-[400px]">
+      <div className="border-b border-amber-100 pb-4 mb-6">
+        <h3 className="font-extrabold text-emerald-900 text-lg flex items-center">
+          <UserCircle className="text-yellow-500 mr-2" size={22} />
+          Admin User Directory
+        </h3>
+        <p className="text-xs font-semibold text-amber-700/80 mt-1">
+          Manage and view all registered system users. Password viewing is restricted for security.
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center items-center h-48">
+          <RefreshCw className="animate-spin text-emerald-500" size={32} />
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-amber-200 shadow-sm">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-emerald-800 text-yellow-400 text-xs border-b-4 border-yellow-500">
+                <th className="p-3 font-bold border-r border-emerald-700 w-1/4">Name</th>
+                <th className="p-3 font-bold border-r border-emerald-700">Account Role</th>
+                <th className="p-3 font-bold border-r border-emerald-700">Designation</th>
+                <th className="p-3 font-bold border-r border-emerald-700">Email Address</th>
+                <th className="p-3 font-bold text-center border-r border-emerald-700">Password</th>
+                <th className="p-3 font-bold text-center w-24">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm text-emerald-950 bg-white">
+              {users.map((u, idx) => (
+                <tr key={u.id} className="hover:bg-amber-50/50 transition-colors border-b border-amber-100 last:border-0">
+                  <td className="p-3 border-r border-amber-100 font-semibold">
+                    {u.lastName ? `${u.lastName}, ${u.firstName} ${u.middleInitial || ''}` : u.label}
+                  </td>
+                  <td className="p-3 border-r border-amber-100">
+                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-bold border border-yellow-200">
+                      {u.role}
+                    </span>
+                  </td>
+                  <td className="p-3 border-r border-amber-100">{u.designation || 'N/A'}</td>
+                  <td className="p-3 border-r border-amber-100 font-mono text-xs">{u.email}</td>
+                  <td className="p-3 text-center text-xs font-bold text-gray-400 italic border-r border-amber-100">
+                    Protected
+                  </td>
+                  <td className="p-3 text-center">
+                    <div className="flex items-center justify-center space-x-2">
+                      <button onClick={() => setEditingUser(u)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Edit User">
+                        <Edit2 size={16} />
+                      </button>
+                      <button onClick={() => handleResetPassword(u)} className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Reset Password">
+                        <Key size={16} />
+                      </button>
+                      <button onClick={() => handleDelete(u)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete User">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {users.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-gray-500 font-medium">
+                    No users found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <EditUserModal 
+        isOpen={!!editingUser} 
+        onClose={() => setEditingUser(null)} 
+        user={editingUser} 
+        onSave={(updatedUser) => setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u))}
+      />
     </div>
   );
 };

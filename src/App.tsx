@@ -4,10 +4,10 @@ import { initializeApp } from 'firebase/app';
 import { getAnalytics } from 'firebase/analytics';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
-import { AlertTriangle, Wheat, Cloud, CloudOff, RefreshCw, UserCircle, LogOut, BarChart3, ClipboardList, ShoppingCart, ArrowRightLeft, Factory, Truck, Scale, Archive, Settings, Download } from 'lucide-react';
+import { AlertTriangle, Wheat, Cloud, CloudOff, RefreshCw, UserCircle, LogOut, Lock, BarChart3, ClipboardList, ShoppingCart, ArrowRightLeft, Factory, Truck, Scale, Archive, Settings, Download } from 'lucide-react';
 import { ROLES, TABS, ROLE_PERMISSIONS, DEFAULT_BAG_SIZES, DEFAULT_WAREHOUSES, BYPRODUCT_CATEGORIES, getColumns, getTimeframeStr, formatToMMDDYYYY, fmtCost, fmtPct, fmtQty, exportToStyledXLSX, initialData, initialSettings, migrateSettings, createEmptyRow, getBagWeight } from './utils';
-import { Login, FilterToolbar, DataGrid, SettingsPanel, DuplicateModal, TransactionModal } from './components';
-import { InventoryReportView, DashboardView, ProductionDashboardView, ByproductDashboardView } from './views';
+import { Login, FilterToolbar, DataGrid, SettingsPanel, DuplicateModal, TransactionModal, DemographicProfile, ChangePasswordModal } from './components';
+import { InventoryReportView, DashboardView, ProductionDashboardView, ByproductDashboardView, UserDirectoryView } from './views';
 
 declare var __firebase_config: any;
 declare var __app_id: any;
@@ -22,6 +22,7 @@ const appId = 'pgi-irpc';
 export default function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('');
+  const [showChangePassword, setShowChangePassword] = useState(false);
   
   const getInitialData = () => {
     const local = localStorage.getItem('isabelaData');
@@ -276,9 +277,21 @@ export default function App() {
         unsubscribeUser = onSnapshot(userDocRef, (userDocSnap) => {
           if (userDocSnap.exists()) {
             const userData = userDocSnap.data();
-            setUser({ id: u.uid, role: userData.role, label: userData.label, username: u.email });
+            setUser({ 
+              id: u.uid, 
+              role: userData.role, 
+              label: userData.label, 
+              username: u.email,
+              firstName: userData.firstName,
+              lastName: userData.lastName,
+              middleInitial: userData.middleInitial,
+              designation: userData.designation,
+              isProfileComplete: userData.isProfileComplete
+            });
             const availableTabs = ROLE_PERMISSIONS[userData.role] || [];
             setActiveTab(prev => prev ? prev : availableTabs[0]);
+          } else {
+            setUser(null);
           }
         }, (e) => {
           console.error("Failed to fetch user profile", e);
@@ -767,6 +780,10 @@ export default function App() {
     return <Login />;
   }
 
+  if (user && !user.isProfileComplete) {
+    return <DemographicProfile user={user} onComplete={() => {}} />;
+  }
+
   const availableTabs = ROLE_PERMISSIONS[user.role];
   const isReadOnly = user.role === ROLES.OBSERVER || user.role === ROLES.ACCOUNTING;
   const canExport = user.role !== ROLES.OBSERVER;
@@ -790,7 +807,8 @@ export default function App() {
     [TABS.ISSUANCE]: <Truck size={18} />,
     [TABS.BYPRODUCTS]: <Scale size={18} />,
     [TABS.OTHERS]: <Archive size={18} />,
-    [TABS.SETTINGS]: <Settings size={18} />
+    [TABS.SETTINGS]: <Settings size={18} />,
+    [TABS.USERS]: <UserCircle size={18} />
   };
 
   const tabLabels = {
@@ -802,7 +820,8 @@ export default function App() {
     [TABS.ISSUANCE]: 'Issuance / Delivery',
     [TABS.BYPRODUCTS]: 'Byproduct Ledger',
     [TABS.OTHERS]: 'Others',
-    [TABS.SETTINGS]: 'System Config'
+    [TABS.SETTINGS]: 'System Config',
+    [TABS.USERS]: 'User Directory'
   };
 
   const formatMonthLabel = (monthString) => {
@@ -836,6 +855,7 @@ export default function App() {
           onClose={() => setTxDuplicateError(null)} 
         />
       )}
+      <ChangePasswordModal isOpen={showChangePassword} onClose={() => setShowChangePassword(false)} user={user} />
       <header className="bg-emerald-900 border-b-4 border-yellow-500 shadow-md z-10 relative shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -925,8 +945,15 @@ export default function App() {
               </button>
             )}
             <button 
+              onClick={() => setShowChangePassword(true)}
+              className="flex items-center justify-center md:justify-start px-4 py-2 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-all shadow-sm border border-emerald-200 shrink-0"
+            >
+              <Lock size={14} className="mr-1.5 shrink-0" />
+              Change Password
+            </button>
+            <button 
               onClick={() => signOut(auth)}
-              className="flex items-center justify-center md:justify-start px-4 py-2.5 bg-white text-emerald-800 rounded-lg text-xs font-bold hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all shadow-sm border border-amber-300 shrink-0"
+              className="flex items-center justify-center md:justify-start px-4 py-2 bg-white text-emerald-800 rounded-lg text-xs font-bold hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all shadow-sm border border-amber-300 shrink-0"
             >
               <LogOut size={14} className="mr-1.5 shrink-0" />
               Logout / Exit Session
@@ -997,6 +1024,8 @@ export default function App() {
                   data={data}
                   onRestoreData={handleManualRestore}
                 />
+              ) : activeTab === TABS.USERS ? (
+                <UserDirectoryView />
               ) : activeTab === TABS.DASHBOARD ? (
                 <DashboardView filteredData={filteredData} bagSizes={settings.bagSizes || DEFAULT_BAG_SIZES} />
               ) : activeTab === TABS.INVENTORY ? (
