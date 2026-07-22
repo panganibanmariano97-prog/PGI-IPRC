@@ -209,7 +209,7 @@ export const FilterToolbar = ({
   const showByproductFilter = activeTab === TABS.INVENTORY || activeTab === TABS.BYPRODUCTS;
 
   return (
-    <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+    <div className="shrink-0 bg-amber-50/80 border border-amber-200 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
       <div className="flex flex-wrap items-center gap-4 text-emerald-900">
         <div className="flex items-center space-x-2">
           <Filter className="text-yellow-600" size={18} />

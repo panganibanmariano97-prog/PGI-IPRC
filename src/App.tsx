@@ -813,7 +813,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fdfbf7] flex flex-col font-sans">
+    <div className="h-screen h-[100dvh] overflow-hidden bg-[#fdfbf7] flex flex-col font-sans">
             {txModal.isOpen && (
         <TransactionModal
           isOpen={txModal.isOpen}
@@ -876,9 +876,9 @@ export default function App() {
         </div>
       </header>
 
-      <div className="flex-1 max-w-full w-full mx-auto p-4 sm:p-6 lg:p-8 overflow-hidden flex flex-col">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 shrink-0">
-          <div className="flex space-x-1 bg-amber-100/50 p-1 rounded-xl shadow-inner border border-amber-200 overflow-x-auto max-w-full">
+      <div className="flex-1 max-w-full w-full mx-auto p-4 sm:p-6 lg:p-8 overflow-hidden flex flex-col md:flex-row gap-4 md:gap-6">
+        <div className="flex flex-col gap-3 shrink-0 w-full md:w-56 lg:w-64 h-auto md:h-full md:overflow-y-auto">
+          <div className="flex md:flex-col flex-row space-x-1 md:space-x-0 md:space-y-1 bg-amber-100/50 p-1.5 rounded-xl shadow-inner border border-amber-200 overflow-x-auto md:overflow-x-hidden">
             {availableTabs.map((tab) => {
               const isActive = activeTab === tab;
               return (
@@ -899,42 +899,44 @@ export default function App() {
                       setSelectedItemType('All');
                     }
                   }}
-                  className={`flex items-center px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                  className={`flex items-center px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap md:whitespace-normal text-left ${
                     isActive
                       ? 'bg-white text-emerald-800 shadow-sm border border-amber-300 ring-1 ring-yellow-500'
                       : 'text-emerald-700/70 hover:bg-amber-100 hover:text-emerald-900'
                   }`}
                 >
-                  <span className={`mr-2 ${isActive ? 'text-yellow-500' : 'text-emerald-600/50'}`}>
+                  <span className={`mr-2 shrink-0 ${isActive ? 'text-yellow-500' : 'text-emerald-600/50'}`}>
                     {tabIcons[tab]}
                   </span>
-                  {tabLabels[tab]}
+                  <span>{tabLabels[tab]}</span>
                 </button>
               );
             })}
           </div>
 
-          {duplicates.length > 0 && (
-            <button
-              onClick={() => setShowDuplicateModal(true)}
-              className="flex items-center px-4 py-2.5 mr-2 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-all shadow-sm border border-red-800 shrink-0"
+          <div className="flex md:flex-col flex-row gap-2 mt-auto">
+            {duplicates.length > 0 && (
+              <button
+                onClick={() => setShowDuplicateModal(true)}
+                className="flex items-center justify-center md:justify-start px-4 py-2.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-all shadow-sm border border-red-800 shrink-0"
+              >
+                <AlertTriangle size={14} className="mr-1.5 shrink-0" />
+                {duplicates.length} Duplicate{duplicates.length > 1 ? 's' : ''}
+              </button>
+            )}
+            <button 
+              onClick={() => signOut(auth)}
+              className="flex items-center justify-center md:justify-start px-4 py-2.5 bg-white text-emerald-800 rounded-lg text-xs font-bold hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all shadow-sm border border-amber-300 shrink-0"
             >
-              <AlertTriangle size={14} className="mr-1.5" />
-              {duplicates.length} Duplicate{duplicates.length > 1 ? 's' : ''}
+              <LogOut size={14} className="mr-1.5 shrink-0" />
+              Logout / Exit Session
             </button>
-          )}
-          <button 
-            onClick={() => signOut(auth)}
-            className="flex items-center px-4 py-2.5 bg-white text-emerald-800 rounded-lg text-xs font-bold hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-all shadow-sm border border-amber-300 shrink-0"
-          >
-            <LogOut size={14} className="mr-1.5" />
-            Logout / Exit Session
-          </button>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-auto bg-white rounded-2xl shadow-xl border border-amber-200/60 p-1">
-          <div className="bg-amber-50/30 h-full rounded-xl p-4 sm:p-5 flex flex-col">
-            <div className="mb-4 flex flex-col sm:flex-row justify-between sm:items-end border-b border-amber-200 pb-3 gap-2">
+        <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-2xl shadow-xl border border-amber-200/60 p-1">
+          <div className="bg-amber-50/30 flex-1 overflow-hidden rounded-xl p-4 sm:p-5 flex flex-col">
+            <div className="shrink-0 mb-4 flex flex-col sm:flex-row justify-between sm:items-end border-b border-amber-200 pb-3 gap-2">
               <div>
                 <h2 className="text-xl font-black text-emerald-900 flex items-center">
                   {tabIcons[activeTab]}
